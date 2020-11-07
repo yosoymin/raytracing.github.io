@@ -20,9 +20,8 @@ class moving_sphere : public hittable {
   public:
     moving_sphere() {}
     moving_sphere(
-        point3 ctr0, point3 ctr1, double r, shared_ptr<material> m,
-        double time_start, double time_end)
-      : center0(ctr0), center1(ctr1), radius(r), mat_ptr(m), time0(time_start), time1(time_end)
+        point3 ctr0, point3 ctr1, double r, interval sphere_period, shared_ptr<material> m)
+      : center0(ctr0), center1(ctr1), radius(r), period(sphere_period), mat_ptr(m)
     {};
 
     virtual bool hit(const ray& r, interval ray_t, hit_record& rec) const override;
@@ -34,14 +33,15 @@ class moving_sphere : public hittable {
 
   public:
     point3 center0, center1;
-    double time0, time1;
+    interval period;
     double radius;
     shared_ptr<material> mat_ptr;
 };
 
 
 point3 moving_sphere::center(double time) const{
-    return center0 + ((time - time0) / (time1 - time0))*(center1 - center0);
+    auto t = interval(0,1).clamp(period.fraction(time));
+    return lerp(center0, center1, t);
 }
 
 

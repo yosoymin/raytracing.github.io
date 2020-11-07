@@ -165,5 +165,15 @@ inline vec3 refract(const vec3& uv, const vec3& n, double etai_over_etat) {
     return r_out_perp + r_out_parallel;
 }
 
+inline vec3 lerp(const vec3& a, const vec3& b, double t) {
+    // Return the linearly-interpolated value from a to b, given parameter t. t=0 yields a, and
+    // t=1 yields b. Values of t outside [0,1] will be extrapolated.
+    return vec3(
+        interval(a[0],b[0]).lerp(t),
+        interval(a[1],b[1]).lerp(t),
+        interval(a[2],b[2]).lerp(t)
+    );
+}
+
 
 #endif

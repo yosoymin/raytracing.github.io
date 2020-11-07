@@ -25,6 +25,19 @@ class interval {
         if (x > max) return max;
         return x;
     }
+
+    double fraction(double x) const {
+        // Returns the fraction of the distance of x from min to max, where x=min yields 0, and
+        // x=max yields 1. Values outside this range are extrapolated. The complement of lerp().
+        return (x - min) / (max - min);
+    }
+
+    double lerp(double t) const {
+        // Returns the linearly-interpolated value of x along the interval, where t=0 yields the
+        // interval min value, and t=1 yields the interval max value. Values of t outside [0,1]
+        // will yield extrapolated values. The complement of fraction().
+        return min + t * (max - min);
+    }
 };
 
 const static interval empty   (+infinity, -infinity);

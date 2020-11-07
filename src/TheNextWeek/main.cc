@@ -47,7 +47,7 @@ color ray_color(const ray& r, const color& background, const hittable& world, in
 }
 
 
-hittable_list random_scene() {
+hittable_list random_scene(double scene_start, double scene_end) {
     hittable_list world;
 
     auto checker = make_shared<checker_texture>(color(0.2, 0.3, 0.1), color(0.9, 0.9, 0.9));
@@ -67,8 +67,10 @@ hittable_list random_scene() {
                     auto albedo = color::random() * color::random();
                     sphere_material = make_shared<lambertian>(albedo);
                     auto center2 = center + vec3(0, random_double(0,.5), 0);
+
+                    auto sphere_period = interval(0,1);
                     world.add(make_shared<moving_sphere>(
-                        center, center2, 0.2, sphere_material, 0.0, 1.0));
+                        center, center2, 0.2, sphere_period, sphere_material));
                 } else if (choose_mat < 0.95) {
                     // metal
                     auto albedo = color::random(0.5, 1);
@@ -203,7 +205,7 @@ hittable_list cornell_smoke() {
 }
 
 
-hittable_list final_scene() {
+hittable_list final_scene(double scene_start, double scene_end) {
     hittable_list boxes1;
     auto ground = make_shared<lambertian>(color(0.48, 0.83, 0.53));
 
@@ -231,8 +233,11 @@ hittable_list final_scene() {
 
     auto center1 = point3(400, 400, 200);
     auto center2 = center1 + vec3(30,0,0);
+    auto sphere_period = interval(0,1);
     auto moving_sphere_material = make_shared<lambertian>(color(0.7, 0.3, 0.1));
-    objects.add(make_shared<moving_sphere>(center1, center2, 50, moving_sphere_material, 0, 1));
+    objects.add(
+        make_shared<moving_sphere>(center1, center2, 50, sphere_period, moving_sphere_material)
+    );
 
     objects.add(make_shared<sphere>(point3(260, 150, 45), 50, make_shared<dielectric>(1.5)));
     objects.add(make_shared<sphere>(
@@ -290,12 +295,14 @@ int main() {
     auto aperture = 0.0;
     auto dist_to_focus = 10.0;
     color background(0,0,0);
+    const auto scene_start = 0.0;
+    const auto scene_end = 1.0;
 
     // Scene
 
     switch (0) {
         case 1:
-            world = random_scene();
+            world = random_scene(scene_start, scene_end);
             background = color(0.70, 0.80, 1.00);
             lookfrom = point3(13,2,3);
             lookat = point3(0,0,0);
@@ -357,7 +364,7 @@ int main() {
             break;
 
         case 8:
-            world = final_scene();
+            world = final_scene(scene_start, scene_end);
             aspect_ratio = 1.0;
             image_width = 800;
             samples_per_pixel = 10000;
@@ -368,12 +375,10 @@ int main() {
     }
 
     const int image_height = static_cast<int>(image_width / aspect_ratio);
-    const auto time_start = 0.0;
-    const auto time_end = 1.0;
 
     camera cam(
         lookfrom, lookat, vup, vfov, aspect_ratio, aperture, dist_to_focus,
-        time_start, time_end);
+        scene_start, scene_end);
 
     // Render
 
