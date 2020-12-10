@@ -1286,47 +1286,76 @@ Now let’s go on to the light transport equation we are solving.
 Light Scattering
 ====================================================================================================
 
-In this chapter we won't actually program anything. We will set up for a big lighting change in the
-next chapter.
+In this chapter we won't actually program anything. We'll just set up for a big lighting change in
+the next chapter. Our ray tracing program from the first two books scatters a ray when it interacts
+with a surface or a volume. Ray scattering is the most commonly used model for simulating light
+propagation through a scene. This can naturally be modeled with probability. There are many things
+to consider when modelling the probabilistic scattering of rays.
 
 
 Albedo
 -------
-Our program from the last books already scatters rays from a surface or volume. This is the commonly
-used model for light interacting with a surface. One natural way to model this is with probability.
 First, is the light absorbed?
 
-Probability of light scattering: $A$
+Probability of light being scattered: $A$
 
 Probability of light being absorbed: $1-A$
 
-Here $A$ stands for _albedo_ (latin for _whiteness_). Albedo is a precise technical term in some
-disciplines, but in all cases it is used to define some form of _fractional reflectance_. This
-_fractional reflectance_ (or albedo) will vary with color and (as we implemented for our glass in
-book one) can vary with incident direction.
+Where, here $A$ stands for _albedo_ (which is latin for _whiteness_). Albedo is a precise technical
+term in some disciplines, but in all cases it is used to define some form of
+_fractional reflectance_. This _fractional reflectance_ (or albedo) will vary with color and (as we
+implemented for our glass in book one) can vary with incident direction. It can help to stop and
+remember that when we simulate light propagation all we're doing is simulating the movement of
+photons through a space. If you remember your high school Physics then you should recall that every
+photon has a unique energy and wavelength associated by the Planck constant:
 
+    $$ E = \frac{hc}{\lambda} $$
+
+Each individual photon has a _tiny_ amount of energy, but when you add enough of them up you get all
+of the illumination in your program. The absorption or scattering of a photon with a surface or a
+volume (or really anything that a photon can interact with) is probabilistically determined by the
+albedo of the object. Albedo can depend on color because some objects are more likely to absorb
+some wavelengths.
 
 Scattering
 -----------
 In most physically based renderers, we would use a set of wavelengths for the light color rather
 than RGB. We can extend our intuition by thinking of R, G, and B as specific algebraic mixtures of
-long, medium, and short wavelengths.
+wavelengths where R is _mostly_ red, G is _mostly_ green, and B is _mostly_ blue. This is an
+approximation of the human visual system which has 3 unique sets of color receptors, called cones,
+that are each sensitive to different wavelengths, roughly RGB, but are referred to as long, medium,
+and short cones (the names are in reference to the length of the wavelength, not the length of the
+cone). Just as colors can be represented by their strength in the RGB color space, colors can also
+be represented by how excited each set of cones is in the _LMS color space_ (long, medium, short).
 
 If the light does scatter, it will have a directional distribution that we can describe as a PDF
-over solid angle. I will refer to this as its _scattering PDF_: $s(direction)$. The scattering PDF
-can also vary with _incident direction_, which is the direction of the incoming ray. You can see
-this varying with incident direction when you look at reflections off a road -- they become
-mirror-like as your viewing angle (incident angle) approaches grazing.
+over solid angle. I will refer to this as its _scattering PDF_: $s()$. The scattering PDF will vary
+with the outgoing direction, $s(\omega_o)$. The scattering PDF can also vary with
+_incident direction_, which is the direction of the incoming ray,
+$s(\omega_i, \omega_o)$. You can see this varying with incident direction when you
+look at reflections off a road -- they become mirror-like as your viewing angle (incident angle)
+approaches grazing. Lastly, the scattering PDF can also depend on the scattering position:
+$s(\textbf{x}, \omega_i, \omega_o)$. The $\textbf{x}$ is just a vector representing
+the scattering position: $\textbf{x} = (x, y, z)$. The Albedo of an object can also depend on these
+quantities: $A(\textbf{x}, \omega_i, \omega_o)$.
 
 <div class='together'>
-The color of a surface in terms of these quantities is:
+The color of a surface is found by integrating these terms over the unit hemisphere by the incident
+direction:
 
-  $$ Color = \int A \cdot s(direction) \cdot \text{color}(direction) $$
+    $$ \text{Color}_o(\textbf{x}, \omega_o) = \int_{\omega_i} 
+        A(\textbf{x}, \omega_i, \omega_o) \cdot
+        s(\textbf{x}, \omega_i, \omega_o) \cdot
+        \text{Color}_i(\textbf{x}, \omega_i) $$
+
+We've added a $\text{Color}_i$ term. The scattering PDF and albedo at the surface of an object are
+modifying the light that is incident at that point. So we need to know what color is coming to the
+intersection. This is a recursive algorithm, and is the reason our `ray_color` function returns the
+color of the current object multiplied with the color of the previous ray.
+
+Note that $A()$, $s()$, and $\text{Color}_i()$ may all depend on the wavelength of the light,
+$\lambda$, but I've left it out of the equation because it's busy enough as is.
 </div>
-
-Note that $A$ and $s()$ may depend on the view direction or the scattering position (position on a
-surface or position within a volume). Therefore, the output color may also vary with view direction
-or scattering position.
 
 
 The Scattering PDF
@@ -1334,55 +1363,62 @@ The Scattering PDF
 <div class='together'>
 If we apply the Monte Carlo basic formula we get the following statistical estimate:
 
-  $$ Color = \frac{A \cdot s(direction) \cdot \text{color}(direction)}{p(direction)} $$
+    $$ \text{Color}_o = \frac{A(\textbf{x}, \omega_i, \omega_o) \cdot
+        s(\textbf{x}, \omega_i, \omega_o) \cdot
+        \text{Color}_i(\textbf{x}, \omega_i)}
+        {p(\textbf{x}, \omega_o)} $$
 
-where $p(direction)$ is the PDF of whatever direction we randomly generate.
+where $p(\textbf{x}, \omega_o)$ is the PDF of whatever outgoing direction we randomly generate.
+We'll simplify to just $p(\omega_o)$ because we won't be varying the PDF by $\textbf{x}$.
 </div>
 
 For a Lambertian surface we already implicitly implemented this formula for the special case where
-$p()$ is a cosine density. The $s()$ of a Lambertian surface is proportional to $\cos(\theta)$,
-where $\theta$ is the angle relative to the surface normal. Remember that all PDF need to integrate
-to one. For $\cos(\theta) < 0$ we have $s(direction) = 0$, and the integral of cos over the
-hemisphere is $\pi$.
+$p()$ is a cosine density. The $s()$ of a Lambertian surface is proportional to $\cos(\theta_o)$,
+where $\theta_o$ is the angle relative to the surface normal. All PDF need to integrate to one
+(remember that $s()$ is the scattering PDF). For $\cos(\theta) < 0$ we have $s(\omega_o) = 0$, so
+the integral of $\cos(\theta)$ over the hemisphere is $\pi$.
 
 <div class='together'>
-To see that, remember that in spherical coordinates:
+To integrate over the hemisphere, remember that in spherical coordinates:
 
-  $$ dA = \sin(\theta) d\theta d\phi $$
+    $$ dA = \sin(\theta) d\theta d\phi $$
 
 So:
 
-  $$ Area = \int_{0}^{2 \pi} \int_{0}^{\pi / 2} cos(\theta) sin(\theta) d\theta d\phi =
-    2 \pi \frac{1}{2} = \pi $$
+    $$ \text{Area} = \int_{0}^{2 \pi} \int_{0}^{\pi / 2} cos(\theta) sin(\theta) d\theta d\phi =
+        2 \pi \frac{1}{2} = \pi $$
 </div>
 
 <div class='together'>
-So for a Lambertian surface the scattering PDF is:
+If we have a scattering PDF that is $\cos(\theta)$ over the hemisphere then we need to normalize by
+$\pi$. So for a Lambertian surface the scattering PDF is:
 
-  $$ s(direction) = \frac{\cos(\theta)}{\pi} $$
+    $$ s(\omega_o) = \frac{\cos(\theta_o)}{\pi} $$
 </div>
 
 <div class='together'>
-If we sample using a PDF that equals the scattering PDF:
+We'll assume that the PDF is equal to the scattering PDF:
 
-  $$ p(direction) = s(direction) = \frac{\cos(\theta)}{\pi} $$
+    $$ p(direction) = s(direction) = \frac{\cos(\theta)}{\pi} $$
 
 The numerator and denominator cancel out, and we get:
 
-  $$ Color = A \cdot color(direction) $$
+    $$ \text{Color}_o = A(\textbf{x}, \omega_i, \omega_o) \cdot
+        \text{Color}_i(\textbf{x}, \omega_i) $$
 
-This is exactly what we had in our original `ray_color()` function! However, we need to generalize
-so we can send extra rays in important directions, such as toward the lights.
+This is exactly what we had in our original `ray_color()` function!
 
-The treatment above is slightly non-standard because I want the same math to work for surfaces and
-volumes. To do otherwise will make some ugly code.
-</div>
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        return attenuation * ray_color(scattered, depth-1);
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    
+However, we need to generalize so we can send extra rays in important directions, such as toward the
+lights. The treatment above is slightly non-standard because I want the same math to work for If you
+read the literature, you’ll see reflection described by the
+_Bidirectional Reflectance Distribution Function_ (BRDF). It relates pretty simply to our terms:
 
-<div class='together'>
-If you read the literature, you’ll see reflection described by the bidirectional reflectance
-distribution function (BRDF). It relates pretty simply to our terms:
-
-  $$ BRDF = \frac{A \cdot s(direction)}{\cos(\theta)} $$
+    $$ BRDF(\omega_i, \omega_o) = \frac{A(\textbf{x}, \omega_i, \omega_o) \cdot
+        s(\textbf{x}, \omega_i, \omega_o)}{\cos(\theta_o)} $$
 
 So for a Lambertian surface for example, $BRDF = A / \pi$. Translation between our terms and BRDF is
 easy.
