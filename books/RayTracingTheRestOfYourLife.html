@@ -1286,31 +1286,47 @@ Now let’s go on to the light transport equation we are solving.
 Light Scattering
 ====================================================================================================
 
-In this chapter we won't actually program anything. We will set up for a big lighting change in the
-next chapter.
+In this chapter we won't actually program anything. We'll just set up for a big lighting change in
+the next chapter. Our ray tracing program from the first two books scatters a ray when it interacts
+with a surface or a volume. Ray scattering is the most commonly used model for simulating light
+propagation through a scene. This can naturally be modeled with probability. There are many things
+to consider when modelling the probabilistic scattering of rays.
 
 
 Albedo
 -------
-Our program from the last books already scatters rays from a surface or volume. This is the commonly
-used model for light interacting with a surface. One natural way to model this is with probability.
 First, is the light absorbed?
 
-Probability of light scattering: $A$
+Probability of light being scattered: $A$
 
 Probability of light being absorbed: $1-A$
 
-Here $A$ stands for _albedo_ (latin for _whiteness_). Albedo is a precise technical term in some
-disciplines, but in all cases it is used to define some form of _fractional reflectance_. This
-_fractional reflectance_ (or albedo) will vary with color and (as we implemented for our glass in
-book one) can vary with incident direction.
+Where, here $A$ stands for _albedo_ (which is latin for _whiteness_). Albedo is a precise technical
+term in some disciplines, but in all cases it is used to define some form of
+_fractional reflectance_. This _fractional reflectance_ (or albedo) will vary with color and (as we
+implemented for our glass in book one) can vary with incident direction. It can help to stop and
+remember that when we simulate light propagation all we're doing is simulating the movement of
+photons through a space. If you remember your high school Physics then you should recall that every
+photon has a unique energy and wavelength associated by the Planck constant:
 
+    $$ E = \frac{hc}{\lambda} $$
+
+Each individual photon has a _tiny_ amount of energy, but when you add enough of them up you get all
+of the illumination in your program. The absorption or scattering of a photon with a surface or a
+volume (or really anything that a photon can interact with) is probabilistically determined by the
+albedo of the object. Albedo can depend on color because some objects are more likely to absorb
+some wavelengths.
 
 Scattering
 -----------
 In most physically based renderers, we would use a set of wavelengths for the light color rather
 than RGB. We can extend our intuition by thinking of R, G, and B as specific algebraic mixtures of
-long, medium, and short wavelengths.
+wavelengths where R is _mostly_ red, G is _mostly_ green, and B is _mostly_ blue. This is an
+approximation of the human visual system which has 3 unique sets of cones that are each sensitive to
+different wavelengths, roughly RGB, but are referred to as long, medium, and short cones (the names
+are in reference to the length of the wavelength, not the length of the cone). Just as colors can be
+represented by their strength in the RGB color space, colors can also be represented by how excited
+each set of cones is in the _LMS color space_ (long, medium, short).
 
 If the light does scatter, it will have a directional distribution that we can describe as a PDF
 over solid angle. I will refer to this as its _scattering PDF_: $s(direction)$. The scattering PDF
