@@ -1209,27 +1209,41 @@ approximates $f$, the faster that it will converge.
 Monte Carlo Integration on the Sphere of Directions
 ====================================================================================================
 
-In our ray tracer we pick random directions, and directions can be represented as points on the
-unit sphere. The same methodology as before applies, but now we need to have a PDF defined over 2D.
+In chapter One Dimensional Monte Carlo Integration we started with a PDF defined in one dimension,
+and then we worked out a couple of different ways to generate random numbers that were weighted by
+this PDF. All of the concepts covered in that chapter can work in spaces larger than a single
+dimension. We might need to select a point from a 2, 3, or even higher dimensional space and weight
+that selection by a PDF. An important case of this--at least for ray tracing--is producing a random
+direction. In the first two books we generated a random direction by creating a random vector and
+rejecting it if it fell outside of the unit sphere, we repeated this until we found a random vector
+that fell inside of the unit sphere. This vector would then be normalized to produce a vector that
+lied perfectly on the unit sphere. This process of generating samples and rejecting them if they are
+not inside of a desired space is called _the rejection method_ and is found all over the literature.
+The method explained last chapter is referred to as _the inversion method_ because we invert the
+PDF. All directions in 3D space can be represented as points on the unit sphere. Choosing a random
+direction can be thought of as choosing a random point on a constrained 2 dimensional plane: the
+plane created by mapping unit sphere to cartesian coordinates. The same methodology as before
+applies, but now we might have a PDF defined over 2 dimensions. Suppose we want to integrate this
+function over the surface of the unit sphere:
 
-Suppose we have this integral over all directions:
+  $$ f(\theta, \phi) = cos^2(\theta) $$
 
-  $$ \int cos^2(\theta) $$
-
-By Monte Carlo integration, we should just be able to sample $\cos^2(\theta) / p(\text{direction})$,
-but what is _direction_ in that context? We could make it based on polar coordinates, so $p$ would
-be in terms of $(\theta, \phi)$. However you do it, remember that a PDF has to integrate to 1 and
-represent the relative probability of that direction being sampled. Recall that we have vec3
-functions to take uniform random samples in (`random_in_unit_sphere()`) or on
-(`random_unit_vector()`) a unit sphere.
-
-<div class='together'>
-Now what is the PDF of these uniform points? As a density on the unit sphere, it is $1/\text{area}$
-of the sphere or $1/(4\pi)$. If the integrand is $\cos^2(\theta)$, and $\theta$ is the angle with
-the z axis:
+By Monte Carlo integration, we should just be able to sample $\cos^2(\theta) / p(r)$, where the
+$p(r)$ is now just $p(direction)$. but what is _direction_ in that context? We could make it based
+on polar coordinates, so $p$ would be in terms of $(\theta, \phi)$. However you do it, remember that
+a PDF must integrate to 1 over the whole surface and represent the relative probability of that
+direction being sampled. Recall that we have a `vec3` function to generate uniform random samples on
+the unit sphere (`random_unit_vector()`) . What is the PDF of these uniform samples? As a uniform
+density on the unit sphere, it is $1/\text{area}$ of the sphere or $1/(4\pi)$. If the integrand is
+$\cos^2(\theta)$, and $\theta$ is the angle with the z axis:
 
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ C++
-    double pdf(const vec3& p) {
+    double f(const vec3& d) {
+        auto cosine_squared = d.z()*d.z();
+        return cosine_squared;
+    }
+
+    double pdf(const vec3& d) {
         return 1 / (4*pi);
     }
 
@@ -1238,8 +1252,8 @@ the z axis:
         auto sum = 0.0;
         for (int i = 0; i < N; i++) {
             vec3 d = random_unit_vector();
-            auto cosine_squared = d.z()*d.z();
-            sum += cosine_squared / pdf(d);
+            auto f_d = f(d);
+            sum += f_d / pdf(d);
         }
         std::cout << std::fixed << std::setprecision(12);
         std::cout << "I = " << sum/N << '\n';
@@ -1249,15 +1263,18 @@ the z axis:
     Generating importance-sampled points on the unit sphere]
 </div>
 
-The analytic answer (if you remember enough advanced calc, check me!) is $\frac{4}{3} \pi$, and the
+The analytic answer is $\frac{4}{3} \pi$ (if you remember enough advanced calc, check me!), and the
 code above produces that. Next, we are ready to apply that in ray tracing!
 
-The key point here is that all the integrals and probability and all that are over the unit sphere.
-The area on the unit sphere is how you measure the directions. Call it direction, solid angle, or
-area -- it’s all the same thing. Solid angle is the term usually used. If you are comfortable with
-that, great! If not, do what I do and imagine the area on the unit sphere that a set of directions
-goes through. The solid angle $\omega$ and the projected area $A$ on the unit sphere are the same
-thing.
+The key point here is that all of the integrals and the probability and everything else is over the
+unit sphere. The area on the unit sphere is how you measure direction in 3D. Call it direction,
+solid angle, or area -- it’s all the same thing. Solid angle is the term that you'll usually find in
+the literature. You have radians (r) in $\theta$ over 1 dimension, and you have _steradians_ (sr) in
+$\theta$ _and_ $\phi$ over 2 dimensions (the unit sphere is a 3 dimensional object, but it's surface
+is only two dimensional). Solid Angle is just the 2 dimensional extension of angles. If you are
+comfortable with a 2 dimensional angle, great! If not, do what I do and imagine the area on the unit
+sphere that a set of directions goes through. The solid angle $\omega$ and the projected area $A$ on
+the unit sphere are the same thing.
 
   ![Figure [solid-angle]: Solid angle / projected area of a sphere
   ](../images/fig-3.09-solid-angle.jpg)
