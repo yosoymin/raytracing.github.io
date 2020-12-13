@@ -809,7 +809,7 @@ number between 0 and $\sqrt{2}$, if it is greater than 0.5 it produces a uniform
 $\sqrt{2}$ and 2.
 
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    double function f(double d)
+    double f(double d)
     {
         if(d <= 0.5)
         {
@@ -968,8 +968,10 @@ Or,
 
     $$ P(x) = \text{area}(p(x'), -\infty, x) $$
 
-Which is the amount of _cumulative_ probability from $-\infty$. If we take the integration outlined
-above, we get the piecewise $P(r)$:
+Which is the amount of _cumulative_ probability from $-\infty$. We rewrote the integral in terms of
+$x'$ instead of $x$ because of calculus rules, if you're not sure whaat it means, don't worry about
+it, you can just treat it like it's the same. If we take the integration outlined above, we get the
+piecewise $P(r)$:
 
     $$ P(r)=\begin{cases}0 & r < 0 \\ \frac{r^2}{4} & 0 \leq r \leq 2 \\ 1 & r > 2  \\  \end{cases} $$
 
@@ -1737,47 +1739,51 @@ In this and the next two chapters, we'll harden our understanding and our tools.
 
 Random Directions Relative to the Z Axis
 -----------------------------------------
-Let’s first figure out how to generate random directions. To simplify things, let’s assume the
-z-axis is the surface normal, and $\theta$ is the angle from the normal. We’ll get them oriented to
-the surface normal vector in the next chapter. We will only deal with distributions that are
-rotationally symmetric about $z$. So $p(direction) = f(\theta)$. If you have had advanced calculus,
-you may recall that on the sphere in spherical coordinates $dA = \sin(\theta) \cdot d\theta \cdot
-d\phi$. If you haven’t, you’ll have to take my word for the next step, but you’ll get it when you
-take advanced calculus.
+Let’s first figure out how to generate random directions. We already have a method to generate
+random directions using the rejection method, let's create one using the inversion method. To
+simplify things, let’s assume the z-axis is the surface normal, and $\theta$ is the angle from the
+normal. We’ll get them oriented to the surface normal vector in the next chapter. We will only deal
+with distributions that are rotationally symmetric about $z$. So $p(\omega) = f(\theta)$.
 
 <div class='together'>
-Given a directional PDF, $p(direction) = f(\theta)$ on the sphere, the 1D PDFs on $\theta$ and
+Given a directional PDF, $p(\omega) = f(\theta)$ on the sphere, the 1D PDFs on $\theta$ and
 $\phi$ are:
 
-  $$ a(\phi) = \frac{1}{2\pi} $$
-(uniform)
-  $$ b(\theta) = 2\pi f(\theta)\sin(\theta) $$
+    $$ a(\phi) = \frac{1}{2\pi} $$
+    $$ b(\theta) = 2\pi f(\theta)\sin(\theta) $$
 </div>
 
 <div class='together'>
-For uniform random numbers $r_1$ and $r_2$, the material presented in the
-One Dimensional Monte Carlo Integration chapter leads to:
+For uniform random numbers $r_1$ and $r_2$, we solve for the CDF of $\theta$ and $\phi$ so that we
+can invert the CDF to derive the random number generator.
 
-  $$ r_1 = \int_{0}^{\phi} \frac{1}{2\pi} dt = \frac{\phi}{2\pi} $$
+    $$ r_1 = \int_{0}^{\phi} a(\phi') d\phi' $$
+    $$ = \int_{0}^{\phi} \frac{1}{2\pi} d\phi' $$
+    $$ = \frac{\phi}{2\pi} $$
 
-Solving for $\phi$ we get:
+Invert to solve for $\phi$:
 
-  $$ \phi = 2 \pi \cdot r_1 $$
+    $$ \phi = 2 \pi \cdot r_1 $$
 
-For $\theta$ we have:
+This should match with your intuition. To solve for a random $\phi$ you can take a uniform random
+number in the interval [0,1] and multiply by $2\pi$ to fully cover the range of all possible $\phi$
+values, which is just [0,$2\pi$]. You may not have a fully formed intuition for how to solve for a
+random value of $\theta$, so let's walk through the math to help you get set up. We rewrite $\phi$
+as $\phi'$ and $\theta$ as $\theta'$ just like before, as a formality. For $\theta$ we have:
 
-  $$ r_2 = \int_{0}^{\theta} 2 \pi f(t) \sin(t) dt $$
+    $$ r_2 = \int_{0}^{\theta} b(\theta') d\theta' $$
+    $$ = \int_{0}^{\theta} 2 \pi f(\theta') \sin(\theta') d\theta' $$
+
 </div>
 
 <div class='together'>
-Here, $t$ is a dummy variable. Let’s try some different functions for $f()$. Let’s first try a
-uniform density on the sphere. The area of the unit sphere is $4\pi$, so a uniform $p(direction) =
-\frac{1}{4\pi}$ on the unit sphere.
+Let’s try some different functions for $f()$. Let’s first try a uniform density on the sphere. The
+area of the unit sphere is $4\pi$, so a uniform $p(\omega) = \frac{1}{4\pi}$ on the unit sphere.
 
-  $$ r_2 = \int_{0}^{\theta} 2 \pi \frac{1}{4\pi} \sin(t) dt $$
-  $$ = \int_{0}^{\theta} \frac{1}{2} \sin(t) dt $$
-  $$ = \frac{-\cos(\theta)}{2} - \frac{-\cos(0)}{2} $$
-  $$ = \frac{1 - \cos(\theta)}{2} $$
+    $$ r_2 = \int_{0}^{\theta} 2 \pi \frac{1}{4\pi} \sin(\theta') d\theta' $$
+    $$ = \int_{0}^{\theta} \frac{1}{2} \sin(\theta') d\theta' $$
+    $$ = \frac{-\cos(\theta)}{2} - \frac{-\cos(0)}{2} $$
+    $$ = \frac{1 - \cos(\theta)}{2} $$
 
 Solving for $\cos(\theta)$ gives:
 
@@ -1841,48 +1847,65 @@ Uniform Sampling a Hemisphere
 ------------------------------
 <div class='together'>
 Now let’s derive uniform on the hemisphere. The density being uniform on the hemisphere means
-$p(direction) = \frac{1}{2\pi}$. Just changing the constant in the theta equations yields:
+$p(\omega) = \frac{1}{2\pi}$. Just changing the constant in the theta equations yields:
 
   $$ \cos(\theta) = 1 - r_2 $$
 </div>
 
 <div class='together'>
-It is comforting that $\cos(\theta)$ will vary from 1 to 0, and thus theta will vary from 0 to
-$\pi/2$. Rather than plot it, let’s do a 2D integral with a known solution. Let’s integrate cosine
-cubed over the hemisphere (just picking something arbitrary with a known solution). First let’s do
-it by hand:
+This means that $\cos(\theta)$ will vary from 1 to 0, and thus theta will vary from 0 to $\pi/2$,
+which means that nothing will go below the horizon. Rather than plot it, let’s do a 2D integral with
+a known solution. Let’s integrate cosine cubed over the hemisphere (just picking something arbitrary
+with a known solution). First let’s do it by hand:
 
-  $$ \int \cos^3(\theta) dA $$
+  $$ \int_\omega \cos^3(\theta) dA $$
   $$ = \int_{0}^{2 \pi} \int_{0}^{\pi /2} \cos^3(\theta) \sin(\theta) d\theta d\phi $$
   $$ = 2 \pi \int_{0}^{\pi/2} \cos^3(\theta) \sin(\theta) = \frac{\pi}{2} $$
 </div>
 
 <div class='together'>
-Now for integration with importance sampling. $p(direction) = \frac{1}{2\pi}$, so we average $f/p$
-which is $\cos^3(\theta) / (1/2\pi)$, and we can test this:
+Now for integration with importance sampling. $p(\omega) = \frac{1}{2\pi}$, so we average
+$f()/p() = \cos^3(\theta) / \frac{1}{2\pi}$, and we can test this:
 
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ C++
+    #include "rtweekend.h"
+
+    #include <iostream>
+    #include <iomanip>
+    #include <math.h>
+    
+    double f(double r1, double r2) {
+        auto x = cos(2*pi*r1)*2*sqrt(r2*(1-r2));
+        auto y = sin(2*pi*r1)*2*sqrt(r2*(1-r2));
+        auto z = 1 - r2;
+        double cos_theta = z;
+        return cos_theta*cos_theta*cos_theta;
+    }
+    
+    double pdf(double r1, double r2) {
+        return 1.0 / (2.0*pi);
+    }
+    
     int main() {
         int N = 1000000;
+    
         auto sum = 0.0;
         for (int i = 0; i < N; i++) {
             auto r1 = random_double();
             auto r2 = random_double();
-            auto x = cos(2*pi*r1)*2*sqrt(r2*(1-r2));
-            auto y = sin(2*pi*r1)*2*sqrt(r2*(1-r2));
-            auto z = 1 - r2;
-            sum += z*z*z / (1.0/(2.0*pi));
+            sum += f(r1, r2) / pdf(r1, r2);
         }
+    
         std::cout << std::fixed << std::setprecision(12);
-        std::cout << "Pi/2     = " << pi/2 << '\n';
+        std::cout << "PI/2 = " << pi/2 << '\n';
         std::cout << "Estimate = " << sum/N << '\n';
-    }
+    }    
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     [Listing [cos-cubed]: <kbd>[cos_cubed.cc]</kbd> Integration using $cos^3(x)$]
 </div>
 
 <div class='together'>
-Now let’s generate directions with $p(directions) = \cos(\theta) / \pi$.
+Now let’s generate directions with $p(\omega) = \cos(\theta) / \pi$.
 
   $$ r_2 = \int_{0}^{\theta} 2 \pi \frac{\cos(t)}{\pi} \sin(t) = 1 - \cos^2(\theta) $$
 
@@ -1898,22 +1921,22 @@ We can save a little algebra on specific cases by noting
 </div>
 
 <div class='together'>
-Let’s also start generating them as random vectors:
+Let’s create a function that generates random vectors weighted by this PDF:
 
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ C++
     inline vec3 random_cosine_direction() {
         auto r1 = random_double();
         auto r2 = random_double();
-        auto z = sqrt(1-r2);
 
         auto phi = 2*pi*r1;
         auto x = cos(phi)*sqrt(r2);
         auto y = sin(phi)*sqrt(r2);
+        auto z = sqrt(1-r2);
 
         return vec3(x, y, z);
     }
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    [Listing [random-cosine-direction]: <kbd>vec3.h</kbd> Random cosine direction utility function
+    [Listing [random-cosine-direction]: <kbd>vec3.h</kbd> Random cosine direction utility function]
 
 
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ C++
@@ -1922,27 +1945,38 @@ Let’s also start generating them as random vectors:
     #include <iostream>
     #include <iomanip>
     #include <math.h>
-
-
+    
+    double f(const vec3& d) {
+        auto cos_theta = d.z();
+        return cos_theta*cos_theta*cos_theta;
+    }
+    
+    double pdf(const vec3& d) {
+        return d.z() / pi;
+    }
+    
     int main() {
         int N = 1000000;
-
+    
         auto sum = 0.0;
         for (int i = 0; i < N; i++) {
-            auto v = random_cosine_direction();
-            sum += v.z()*v.z()*v.z() / (v.z()/pi);
+            vec3 d = random_cosine_direction();
+            sum += f(d) / pdf(d);
         }
-
+    
         std::cout << std::fixed << std::setprecision(12);
-        std::cout << "Pi/2     = " << pi/2 << '\n';
+        std::cout << "PI/2 = " << pi/2 << '\n';
         std::cout << "Estimate = " << sum/N << '\n';
-    }
+    }    
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     [Listing [cos-density]: <kbd>[cos_density.cc]</kbd> Integration with cosine density function]
 </div>
 
-We can generate other densities later as we need them. In the next chapter we’ll get them aligned to
-the surface normal vector.
+We can generate other densities later as we need them. This `random_cosine_direction()` function
+produces a random direction weighted by $\cos(\theta)$ where $\theta$ is the angle from the $z$
+axis. We need to make this more general if we want to able able to produce reflections off of
+objects whose normals aren't perfectly aligned with the $z$ axis. In the next chapter we’ll get work
+on getting our random directions aligned to an arbitrary surface normal vector.
 
 
 
