@@ -2808,37 +2808,50 @@ Now we would like to do a mixture density of the cosine and light sampling. We p
 Some Architectural Decisions
 ====================================================================================================
 
-I won't write any code in this chapter. We’re at a crossroads where I need to make some
-architectural decisions. The mixture-density approach is to not have traditional shadow rays, and is
-something I personally like, because in addition to lights you can sample windows or bright cracks
-under doors or whatever else you think might be bright. But most programs branch, and send one or
-more terminal rays to lights explicitly, and one according to the reflective distribution of the
-surface. This could be a time you want faster convergence on more restricted scenes and add shadow
-rays; that’s a personal design preference.
+We won't write any code in this chapter. We’re at a crossroads and we need to make some
+architectural decisions. The mixture-density approach is an alternative to having more traditional
+shadow rays, which are rays that check to see if an intersection is lit by the lights in the scene.
+The mixture-density approach is something that I personally prefer, because in addition to lights
+you can sample windows or bright cracks under doors or whatever else you think might be bright --
+and important. But you'll see shadow rays in most professional path tracers. Typically they'll have
+a predefined number of shadow rays (_e.g_ 1, 4, 8, 16) where over the course of rendering, at each
+place where the path tracing ray intersects, they'll send these terminal shadow rays to random
+lights in the scene to determine if the intersection is lit by that random light. The intersection
+will either be lit by that light, or completely in shadow, where more shadow rays lead to a more
+accurate illumination. After all of the shadow rays terminate (either at a light or at an occluding
+surface), the inital path tracing ray continues on and more shadow rays are sent at the next
+intersection. You can't tell the shadow rays what is important, you can only tell them what is
+emissive, so shadow rays work best on simpler scenes that don't have overly complicated photon
+distribution. That said, shadow rays terminate at the first thing they run into and don't bounce
+around, so one shadow ray is cheaper than one path tracing ray, which is the reason that you'll
+typically see a lot more shadow rays than path tracing rays (_e.g_ 1, 4, 8, 16). You could choose
+shadow rays over mixture-density in a more restricted scene; that’s a personal design preference.
+Shadow rays tend to be cheaper for a crude result than mixture-density and is becoming increasingly
+common in realtime.
 
 There are some other issues with the code.
 
-The PDF construction is hard coded in the `ray_color()` function. We should clean that up, probably
-by passing something into color about the lights. Unlike BVH construction, we should be careful
-about memory leaks as there are an unbounded number of samples.
+The PDF construction is hard coded in the `ray_color()` function. We should clean that up.
 
-The specular rays (glass and metal) are no longer supported. The math would work out if we just made
-their scattering function a delta function. But that would be floating point disaster. We could
-either separate out specular reflections, or have surface roughness never be zero and have
-almost-mirrors that look perfectly smooth but don’t generate NaNs. I don’t have an opinion on which
-way to do it (I have tried both and they both have their advantages), but we have smooth metal and
-glass code anyway, so I add perfect specular surfaces that do not do explicit f()/p() calculations.
+We've accidentally broken the specular rays (glass and metal) and they are no longer supported.
+The math would continue to work out if we just made their scattering function a delta function. But
+that would lead to all kinds of floating point disasters. We could either make specular reflections
+a special case that skips $f()/p()$, or we could set surface roughness to a really small -- but
+nonzero -- value and have almost-mirrors that look perfectly smooth but that don’t generate NaNs. I
+don’t have an opinion on which way to do it (I have tried both and they both have their advantages),
+but we have smooth metal and glass code anyway, so we'll add perfect specular surfaces that just
+skip over explicit $f()/p()$ calculations.
 
 We also lack a real background function infrastructure in case we want to add an environment map or
-more interesting functional background. Some environment maps are HDR (the RGB components are floats
-rather than 0–255 bytes usually interpreted as 0-1). Our output has been HDR all along; we’ve
-just been truncating it.
+a more interesting functional background. Some environment maps are HDR (the RGB components are
+normalized floats rather than 0–255 bytes). Our output has been HDR all along; we’ve just been
+truncating it.
 
 Finally, our renderer is RGB and a more physically based one -- like an automobile manufacturer
 might use -- would probably need to use spectral colors and maybe even polarization. For a movie
-renderer, you would probably want RGB. You can make a hybrid renderer that has both modes, but that
-is of course harder. I’m going to stick to RGB for now, but I will revisit this near the end of the
-book.
+renderer, most studios still get away with RGB. You can make a hybrid renderer that has both modes,
+but that is of course harder. I’m going to stick to RGB for now, but I will touch on this at the end
+of the book.
 
 
 
