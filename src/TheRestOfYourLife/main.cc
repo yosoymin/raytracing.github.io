@@ -12,11 +12,11 @@
 #include "rtweekend.h"
 
 #include "aarect.h"
-#include "box.h"
 #include "camera.h"
 #include "color.h"
 #include "hittable_list.h"
 #include "material.h"
+#include "quad.h"
 #include "scene.h"
 #include "sphere.h"
 
@@ -50,7 +50,7 @@ void cornell_box(scene& scene_desc) {
     world.add(make_shared<xy_rect>(0, 555, 0, 555, 555, white));
 
     shared_ptr<material> aluminum = make_shared<metal>(color(0.8, 0.85, 0.88), 0.0);
-    shared_ptr<hittable> box1 = make_shared<box>(point3(0,0,0), point3(165,330,165), aluminum);
+    shared_ptr<hittable> box1 = box(point3(0,0,0), point3(165,330,165), aluminum);
     box1 = make_shared<rotate_y>(box1, 15);
     box1 = make_shared<translate>(box1, vec3(265,0,295));
     world.add(box1);
